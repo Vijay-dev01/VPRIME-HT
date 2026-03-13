@@ -72,8 +72,9 @@ export function DayCard({ date }: DayCardProps) {
           inActiveStrokeColor={colors.border}
           activeStrokeWidth={8}
           inActiveStrokeWidth={6}
+          showProgressValue={false}
           title={`${Math.round(progress * 100)}%`}
-          titleColor={colors.text}
+          titleColor={colors.primaryRed}
           titleFontSize={24}
         />
       </View>
