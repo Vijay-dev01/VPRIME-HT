@@ -35,6 +35,7 @@ interface HabitState {
 
   fetchHabits: () => Promise<void>;
   addHabit: (name: string) => Promise<void>;
+  deleteHabit: (habitId: string) => Promise<void>;
   fetchHabitLogs: (startDate: string, endDate: string) => Promise<void>;
   fetchDailyTasks: (startDate: string, endDate: string) => Promise<void>;
 
@@ -43,6 +44,7 @@ interface HabitState {
   toggleDailyTask: (taskId: string) => Promise<void>;
   setTaskCompleted: (taskId: string, completed: boolean) => void;
   addDailyTask: (day: string, title: string) => Promise<void>;
+  deleteDailyTask: (taskId: string) => Promise<void>;
 
   totalHabitsCompleted: () => number;
   bestStreak: () => number;
@@ -167,6 +169,19 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     if (data) set((s) => ({ habits: [...s.habits, data as Habit] }));
   },
 
+  deleteHabit: async (habitId) => {
+    if (!supabase) return;
+    const { error } = await supabase.from('habits').delete().eq('id', habitId);
+    if (error) {
+      console.warn('[deleteHabit] Supabase error:', error.message, error.code);
+      throw new Error(error.message);
+    }
+    set((s) => ({
+      habits: s.habits.filter((h) => h.id !== habitId),
+      habitLogs: s.habitLogs.filter((l) => l.habit_id !== habitId),
+    }));
+  },
+
   fetchHabitLogs: async (startDate, endDate) => {
     if (!supabase) return;
     const { data } = await supabase
@@ -249,6 +264,16 @@ export const useHabitStore = create<HabitState>((set, get) => ({
       throw new Error(error.message);
     }
     if (data) set((s) => ({ dailyTasks: [...s.dailyTasks, data as DailyTask] }));
+  },
+
+  deleteDailyTask: async (taskId) => {
+    if (!supabase) return;
+    const { error } = await supabase.from('daily_tasks').delete().eq('id', taskId);
+    if (error) {
+      console.warn('[deleteDailyTask] Supabase error:', error.message, error.code);
+      throw new Error(error.message);
+    }
+    set((s) => ({ dailyTasks: s.dailyTasks.filter((t) => t.id !== taskId) }));
   },
 
   totalHabitsCompleted: () =>

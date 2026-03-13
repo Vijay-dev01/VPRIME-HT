@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -19,6 +19,7 @@ interface TaskItemProps {
 
 export function TaskItem({ taskId, title, completed }: TaskItemProps) {
   const toggleDailyTask = useHabitStore((s) => s.toggleDailyTask);
+  const deleteDailyTask = useHabitStore((s) => s.deleteDailyTask);
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -32,24 +33,41 @@ export function TaskItem({ taskId, title, completed }: TaskItemProps) {
     toggleDailyTask(taskId);
   };
 
+  const onDelete = () => {
+    Alert.alert(
+      'Delete task',
+      `Remove "${title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteDailyTask(taskId).catch((e) => Alert.alert('Error', (e as Error).message)),
+        },
+      ]
+    );
+  };
+
   return (
-    <AnimatedPressable
-      onPress={onPress}
-      style={[styles.row, animatedStyle]}
-    >
-      <Checkbox
-        value={completed}
-        onValueChange={() => toggleDailyTask(taskId)}
-        color={completed ? colors.primaryRed : colors.border}
-        style={styles.checkbox}
-      />
-      <Text
-        style={[styles.title, completed && styles.titleCompleted]}
-        numberOfLines={1}
-      >
-        {title}
-      </Text>
-    </AnimatedPressable>
+    <View style={styles.row}>
+      <AnimatedPressable onPress={onPress} style={[styles.rowMain, animatedStyle]}>
+        <Checkbox
+          value={completed}
+          onValueChange={() => toggleDailyTask(taskId)}
+          color={completed ? colors.primaryRed : colors.border}
+          style={styles.checkbox}
+        />
+        <Text
+          style={[styles.title, completed && styles.titleCompleted]}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
+      </AnimatedPressable>
+      <Pressable style={styles.deleteBtn} onPress={onDelete} hitSlop={8}>
+        <Text style={styles.deleteBtnText}>×</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -59,9 +77,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 4,
-    gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  rowMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   checkbox: {
     width: 24,
@@ -76,5 +99,17 @@ const styles = StyleSheet.create({
   titleCompleted: {
     color: colors.subText,
     textDecorationLine: 'line-through',
+  },
+  deleteBtn: {
+    padding: 4,
+    minWidth: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtnText: {
+    color: colors.subText,
+    fontSize: 22,
+    fontWeight: '300',
+    lineHeight: 24,
   },
 });

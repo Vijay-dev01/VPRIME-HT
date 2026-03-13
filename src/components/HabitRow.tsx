@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Alert } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -60,12 +60,32 @@ function CheckCell({
 }
 
 export function HabitRow({ habitId, habitName, dates }: HabitRowProps) {
+  const deleteHabit = useHabitStore((s) => s.deleteHabit);
+
+  const onDelete = () => {
+    Alert.alert(
+      'Delete habit',
+      `Remove "${habitName}" and all its history?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteHabit(habitId).catch((e) => Alert.alert('Error', (e as Error).message)),
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.row}>
       <View style={styles.habitNameCell}>
         <Text style={styles.habitName} numberOfLines={1}>
           {habitName}
         </Text>
+        <Pressable style={styles.deleteHabitBtn} onPress={onDelete} hitSlop={8}>
+          <Text style={styles.deleteHabitBtnText}>×</Text>
+        </Pressable>
       </View>
       <ScrollView
         horizontal
@@ -96,14 +116,29 @@ const styles = StyleSheet.create({
   habitNameCell: {
     width: 120,
     minWidth: 120,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 10,
-    justifyContent: 'center',
     backgroundColor: colors.card,
+    gap: 4,
   },
   habitName: {
+    flex: 1,
     color: colors.text,
     fontSize: 14,
+  },
+  deleteHabitBtn: {
+    padding: 2,
+    minWidth: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteHabitBtnText: {
+    color: colors.subText,
+    fontSize: 20,
+    fontWeight: '300',
+    lineHeight: 20,
   },
   daysScroll: {
     flex: 1,
