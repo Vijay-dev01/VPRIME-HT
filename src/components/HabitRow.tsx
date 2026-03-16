@@ -6,27 +6,28 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useHabitStore } from '../store/useHabitStore';
-import { colors } from '../theme/colors';
+import { useThemeColors } from '../theme/useThemeColors';
+import type { Habit } from '../store/types';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const CELL_SIZE = 44;
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 interface HabitRowProps {
-  habitId: string;
-  habitName: string;
+  habit: Habit;
   dates: string[];
+  onEdit?: (habit: Habit) => void;
 }
 
 function CheckCell({
   habitId,
   date,
-  dayIndex,
+  cellStyles,
 }: {
   habitId: string;
   date: string;
   dayIndex: number;
+  cellStyles: { cell: object; cellChecked: object; check: object; checkChecked: object };
 }) {
   const completed = useHabitStore((s) => s.getHabitCompleted(habitId, date));
   const toggleHabitDay = useHabitStore((s) => s.toggleHabitDay);
@@ -47,20 +48,107 @@ function CheckCell({
     <AnimatedPressable
       onPress={onPress}
       style={[
-        styles.cell,
+        cellStyles.cell,
         animatedStyle,
-        completed && styles.cellChecked,
+        completed && cellStyles.cellChecked,
       ]}
     >
-      <Text style={[styles.check, completed && styles.checkChecked]}>
+      <Text style={[cellStyles.check, completed && cellStyles.checkChecked]}>
         {completed ? '✓' : ''}
       </Text>
     </AnimatedPressable>
   );
 }
 
-export function HabitRow({ habitId, habitName, dates }: HabitRowProps) {
+export function HabitRow({ habit, dates, onEdit }: HabitRowProps) {
+  const { id: habitId, name: habitName } = habit;
+  const colors = useThemeColors();
   const deleteHabit = useHabitStore((s) => s.deleteHabit);
+  const getHabitProgress = useHabitStore((s) => s.getHabitProgress);
+  const progress = getHabitProgress(habitId);
+
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        row: {
+          flexDirection: 'row',
+          alignItems: 'stretch',
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        },
+        habitNameCell: {
+          width: 120,
+          minWidth: 120,
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: 12,
+          paddingHorizontal: 10,
+          backgroundColor: colors.card,
+          gap: 4,
+        },
+        habitNameWrap: { flex: 1, minWidth: 0 },
+        habitName: {
+          color: colors.text,
+          fontSize: 14,
+        },
+        habitProgress: {
+          color: colors.subText,
+          fontSize: 11,
+          marginTop: 2,
+        },
+        editHabitBtn: {
+          padding: 2,
+          minWidth: 24,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        editHabitBtnText: {
+          color: colors.subText,
+          fontSize: 14,
+        },
+        deleteHabitBtn: {
+          padding: 2,
+          minWidth: 24,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        deleteHabitBtnText: {
+          color: colors.subText,
+          fontSize: 20,
+          fontWeight: '300',
+          lineHeight: 20,
+        },
+        daysScroll: { flex: 1 },
+        daysContent: {
+          flexDirection: 'row',
+          paddingVertical: 8,
+          paddingRight: 16,
+        },
+        cell: {
+          width: CELL_SIZE,
+          height: CELL_SIZE,
+          marginLeft: 6,
+          borderRadius: 8,
+          borderWidth: 2,
+          borderColor: colors.border,
+          backgroundColor: colors.background,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        cellChecked: {
+          backgroundColor: colors.primaryRed,
+          borderColor: colors.secondaryRed,
+        },
+        check: {
+          color: colors.subText,
+          fontSize: 18,
+        },
+        checkChecked: {
+          color: colors.text,
+        },
+      }),
+    [colors]
+  );
 
   const onDelete = () => {
     Alert.alert(
@@ -77,12 +165,31 @@ export function HabitRow({ habitId, habitName, dates }: HabitRowProps) {
     );
   };
 
+  const cellStyles = {
+    cell: styles.cell,
+    cellChecked: styles.cellChecked,
+    check: styles.check,
+    checkChecked: styles.checkChecked,
+  };
+
   return (
     <View style={styles.row}>
       <View style={styles.habitNameCell}>
-        <Text style={styles.habitName} numberOfLines={1}>
-          {habitName}
-        </Text>
+        <View style={styles.habitNameWrap}>
+          <Text style={styles.habitName} numberOfLines={1}>
+            {habitName}
+          </Text>
+          {progress != null && (
+            <Text style={styles.habitProgress} numberOfLines={1}>
+              {progress.label}
+            </Text>
+          )}
+        </View>
+        {onEdit && (
+          <Pressable style={styles.editHabitBtn} onPress={() => onEdit(habit)} hitSlop={8}>
+            <Text style={styles.editHabitBtnText}>✎</Text>
+          </Pressable>
+        )}
         <Pressable style={styles.deleteHabitBtn} onPress={onDelete} hitSlop={8}>
           <Text style={styles.deleteHabitBtnText}>×</Text>
         </Pressable>
@@ -99,77 +206,12 @@ export function HabitRow({ habitId, habitName, dates }: HabitRowProps) {
             habitId={habitId}
             date={date}
             dayIndex={i}
+            cellStyles={cellStyles}
           />
         ))}
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  habitNameCell: {
-    width: 120,
-    minWidth: 120,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    backgroundColor: colors.card,
-    gap: 4,
-  },
-  habitName: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 14,
-  },
-  deleteHabitBtn: {
-    padding: 2,
-    minWidth: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteHabitBtnText: {
-    color: colors.subText,
-    fontSize: 20,
-    fontWeight: '300',
-    lineHeight: 20,
-  },
-  daysScroll: {
-    flex: 1,
-  },
-  daysContent: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    paddingRight: 16,
-  },
-  cell: {
-    width: CELL_SIZE,
-    height: CELL_SIZE,
-    marginLeft: 6,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cellChecked: {
-    backgroundColor: colors.primaryRed,
-    borderColor: colors.secondaryRed,
-  },
-  check: {
-    color: colors.subText,
-    fontSize: 18,
-  },
-  checkChecked: {
-    color: colors.text,
-  },
-});
 
 export { CELL_SIZE };

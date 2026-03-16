@@ -16,6 +16,18 @@ export const getWeekDates = (anchor: Date): string[] => {
   return out;
 };
 
+export const getMonthDates = (year: number, month: number): string[] => {
+  const out: string[] = [];
+  const first = new Date(year, month - 1, 1);
+  const last = new Date(year, month, 0);
+  const d = new Date(first);
+  while (d <= last) {
+    out.push(d.toISOString().slice(0, 10));
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+};
+
 const formatDate = (d: Date) => d.toISOString().slice(0, 10);
 
 interface HabitState {
@@ -23,9 +35,12 @@ interface HabitState {
   habitLogs: HabitLog[];
   dailyTasks: DailyTask[];
   selectedWeekStart: Date;
+  selectedMonth: { year: number; month: number }; // 1-based month
 
   setSelectedWeekStart: (d: Date) => void;
+  setSelectedMonth: (year: number, month: number) => void;
   weekDates: () => string[];
+  monthDates: () => string[];
   toggleHabitDay: (habitId: string, date: string) => Promise<void>;
   setHabitLog: (habitId: string, date: string, completed: boolean) => void;
   getHabitCompleted: (habitId: string, date: string) => boolean;
@@ -34,8 +49,11 @@ interface HabitState {
   weeklyProgressLabel: () => string;
 
   fetchHabits: () => Promise<void>;
-  addHabit: (name: string) => Promise<void>;
+  addHabit: (name: string, durationDays?: number | null) => Promise<void>;
+  updateHabit: (habitId: string, patch: { duration_days?: number | null; start_date?: string | null }) => Promise<void>;
   deleteHabit: (habitId: string) => Promise<void>;
+  habitsSortedByPriority: () => Habit[];
+  getHabitProgress: (habitId: string) => { completed: number; total: number; label: string } | null;
   fetchHabitLogs: (startDate: string, endDate: string) => Promise<void>;
   fetchDailyTasks: (startDate: string, endDate: string) => Promise<void>;
 
@@ -60,10 +78,19 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     d.setDate(d.getDate() - d.getDay());
     return d;
   })(),
+  selectedMonth: (() => {
+    const d = new Date();
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  })(),
 
   setSelectedWeekStart: (d) => set({ selectedWeekStart: d }),
+  setSelectedMonth: (year, month) => set({ selectedMonth: { year, month } }),
 
   weekDates: () => getWeekDates(get().selectedWeekStart),
+  monthDates: () => {
+    const { selectedMonth } = get();
+    return getMonthDates(selectedMonth.year, selectedMonth.month);
+  },
 
   setHabitLog: (habitId, date, completed) => {
     set((s) => {
@@ -153,13 +180,17 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     set({ habits: (data ?? []) as Habit[] });
   },
 
-  addHabit: async (name) => {
+  addHabit: async (name, durationDays) => {
     const trimmed = name?.trim();
     if (!trimmed) return;
     if (!supabase) return;
+    const startDate = formatDate(new Date());
+    const payload: Record<string, unknown> = { name: trimmed };
+    if (durationDays != null) payload.duration_days = durationDays;
+    if (durationDays != null) payload.start_date = startDate;
     const { data, error } = await supabase
       .from('habits')
-      .insert({ name: trimmed })
+      .insert(payload)
       .select()
       .single();
     if (error) {
@@ -167,6 +198,53 @@ export const useHabitStore = create<HabitState>((set, get) => ({
       throw new Error(error.message);
     }
     if (data) set((s) => ({ habits: [...s.habits, data as Habit] }));
+  },
+
+  updateHabit: async (habitId, patch) => {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('habits')
+      .update(patch)
+      .eq('id', habitId);
+    if (error) {
+      console.warn('[updateHabit] Supabase error:', error.message, error.code);
+      throw new Error(error.message);
+    }
+    set((s) => ({
+      habits: s.habits.map((h) =>
+        h.id === habitId ? { ...h, ...patch } : h
+      ),
+    }));
+  },
+
+  habitsSortedByPriority: () => {
+    const { habits, habitLogs } = get();
+    return [...habits].sort((a, b) => {
+      const aCount = habitLogs.filter((l) => l.habit_id === a.id && l.completed).length;
+      const bCount = habitLogs.filter((l) => l.habit_id === b.id && l.completed).length;
+      return bCount - aCount;
+    });
+  },
+
+  getHabitProgress: (habitId) => {
+    const habit = get().habits.find((h) => h.id === habitId);
+    if (!habit?.duration_days) return null;
+    const start = habit.start_date || habit.created_at.slice(0, 10);
+    const startD = new Date(start);
+    const endD = new Date(startD);
+    endD.setDate(startD.getDate() + habit.duration_days - 1);
+    const end = formatDate(endD);
+    const { habitLogs } = get();
+    const completed = habitLogs.filter(
+      (l) => l.habit_id === habitId && l.date >= start && l.date <= end && l.completed
+    ).length;
+    const total = habit.duration_days;
+    const dayNum = Math.min(
+      total,
+      Math.max(0, Math.floor((new Date().getTime() - new Date(start).getTime()) / 86400000) + 1)
+    );
+    const label = `${completed}/${total} days`;
+    return { completed, total, label };
   },
 
   deleteHabit: async (habitId) => {

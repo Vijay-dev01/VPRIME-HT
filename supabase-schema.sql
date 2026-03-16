@@ -1,9 +1,14 @@
 -- Run in Supabase SQL Editor (Dashboard → SQL Editor → New query)
+-- For existing DBs that already have habits table, run:
+--   alter table habits add column if not exists duration_days int;
+--   alter table habits add column if not exists start_date date;
 
 create table if not exists habits (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  duration_days int,
+  start_date date
 );
 
 create table if not exists habit_logs (

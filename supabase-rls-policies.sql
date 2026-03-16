@@ -4,9 +4,11 @@
 -- habits
 drop policy if exists "Allow anon select habits" on habits;
 drop policy if exists "Allow anon insert habits" on habits;
+drop policy if exists "Allow anon update habits" on habits;
 drop policy if exists "Allow anon delete habits" on habits;
 create policy "Allow anon select habits" on habits for select to anon using (true);
 create policy "Allow anon insert habits" on habits for insert to anon with check (true);
+create policy "Allow anon update habits" on habits for update to anon using (true) with check (true);
 create policy "Allow anon delete habits" on habits for delete to anon using (true);
 
 -- habit_logs

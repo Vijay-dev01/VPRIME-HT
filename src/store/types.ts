@@ -2,6 +2,8 @@ export interface Habit {
   id: string;
   name: string;
   created_at: string;
+  duration_days?: number | null;
+  start_date?: string | null; // YYYY-MM-DD
 }
 
 export interface HabitLog {

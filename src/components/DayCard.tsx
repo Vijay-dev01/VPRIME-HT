@@ -11,7 +11,7 @@ import {
 import CircularProgress from 'react-native-circular-progress-indicator';
 import { TaskItem } from './TaskItem';
 import { useHabitStore } from '../store/useHabitStore';
-import { colors } from '../theme/colors';
+import { useThemeColors } from '../theme/useThemeColors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.82, 340);
@@ -24,6 +24,7 @@ interface DayCardProps {
 }
 
 export function DayCard({ date }: DayCardProps) {
+  const colors = useThemeColors();
   const addDailyTask = useHabitStore((s) => s.addDailyTask);
   const dailyTasks = useHabitStore((s) => s.dailyTasks);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -44,6 +45,92 @@ export function DayCard({ date }: DayCardProps) {
     month: 'short',
     year: 'numeric',
   });
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: {
+          width: CARD_WIDTH,
+          marginHorizontal: 12,
+          backgroundColor: colors.card,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: colors.border,
+          overflow: 'hidden',
+          paddingBottom: 20,
+        },
+        header: {
+          paddingTop: 20,
+          paddingHorizontal: 20,
+          paddingBottom: 8,
+        },
+        dayName: {
+          color: colors.text,
+          fontSize: 22,
+          fontWeight: '800',
+        },
+        dateLabel: {
+          color: colors.subText,
+          fontSize: 14,
+          marginTop: 2,
+        },
+        ringWrap: {
+          alignItems: 'center',
+          paddingVertical: 16,
+        },
+        tasksSection: {
+          paddingHorizontal: 16,
+          paddingTop: 8,
+        },
+        tasksLabel: {
+          color: colors.primaryRed,
+          fontSize: 14,
+          fontWeight: '700',
+          marginBottom: 8,
+        },
+        empty: {
+          color: colors.subText,
+          fontSize: 14,
+          fontStyle: 'italic',
+          paddingVertical: 12,
+        },
+        addTaskRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          marginTop: 12,
+          paddingTop: 12,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+        },
+        addTaskInput: {
+          flex: 1,
+          backgroundColor: colors.background,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 8,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          color: colors.text,
+          fontSize: 14,
+        },
+        addTaskBtn: {
+          backgroundColor: colors.primaryRed,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          borderRadius: 8,
+        },
+        addTaskBtnDisabled: {
+          opacity: 0.5,
+        },
+        addTaskBtnText: {
+          color: colors.text,
+          fontSize: 14,
+          fontWeight: '700',
+        },
+      }),
+    [colors]
+  );
 
   const handleAddTask = async () => {
     const title = newTaskTitle.trim();
@@ -113,87 +200,5 @@ export function DayCard({ date }: DayCardProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    width: CARD_WIDTH,
-    marginHorizontal: 12,
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-    paddingBottom: 20,
-  },
-  header: {
-    paddingTop: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-  },
-  dayName: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  dateLabel: {
-    color: colors.subText,
-    fontSize: 14,
-    marginTop: 2,
-  },
-  ringWrap: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  tasksSection: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-  tasksLabel: {
-    color: colors.primaryRed,
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  empty: {
-    color: colors.subText,
-    fontSize: 14,
-    fontStyle: 'italic',
-    paddingVertical: 12,
-  },
-  addTaskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  addTaskInput: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: colors.text,
-    fontSize: 14,
-  },
-  addTaskBtn: {
-    backgroundColor: colors.primaryRed,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  addTaskBtnDisabled: {
-    opacity: 0.5,
-  },
-  addTaskBtnText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-});
 
 export { CARD_WIDTH };
